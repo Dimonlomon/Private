@@ -11,7 +11,7 @@ from PIL import ImageGrab
 import pyautogui
 
 # Настройки сервера
-HOST = '25.33.76.33'  # IP-адрес сервера
+HOST = '0.0.0.0'  # IP-адрес сервера
 PORT = 5000         # Порт
 PASSWORD = 'StrongPassword123'
 
