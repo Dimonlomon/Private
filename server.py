@@ -11,7 +11,7 @@ from PIL import ImageGrab
 import pyautogui
 
 # Настройки сервера
-HOST = '0.0.0.0'     # IP-адрес сервера
+HOST = 'localhost'     # IP-адрес сервера
 PORT = 5000               # Порт
 PASSWORD = 'StrongPassword123'
 
@@ -157,3 +157,4 @@ def start_server():
 
 if __name__ == '__main__':
     start_server()
+
