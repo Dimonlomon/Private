@@ -141,7 +141,15 @@ def handle_client(conn, addr):
     finally:
         conn.close()
         print(f'[-] Disconnected {addr}')
+        
+with open("server.py", "r", encoding="utf-8") as f:
+    lines = f.readlines()
 
+# Убираем пустые строки и двойные переносы
+with open("server_cleaned.py", "w", encoding="utf-8") as f:
+    for line in lines:
+        if line.strip() != "":
+            f.write(line)
 # Запуск сервера
 def start_server():
     # Запускаем автообновление в фоне
@@ -157,5 +165,6 @@ def start_server():
 
 if __name__ == '__main__':
     start_server()
+
 
 
