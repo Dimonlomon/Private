@@ -17,7 +17,7 @@ PASSWORD = 'StrongPassword123'
 
 # URL для автообновления (raw-ссылка на server.py)
 UPDATE_URL = (
-    'https://gist.githubusercontent.com/Dimonlomon/f52cb1bc8e8779181445b868e391cb4b/raw/server.py'
+    'https://raw.githubusercontent.com/Dimonlomon/Private/main/server.py'
 )
 CHECK_INTERVAL = 300  # проверка каждые 300 секунд
 
@@ -157,4 +157,5 @@ def start_server():
 
 if __name__ == '__main__':
     start_server()
+
 
