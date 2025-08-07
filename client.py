@@ -19,7 +19,7 @@ import cv2
 import shutil
 
 SERVER_HOST = '176.106.246.150'
-SERVER_PORT = 12536
+SERVER_PORT = 25565
 PASSWORD = 'StrongPassword123'
 UPDATE_URL = 'https://raw.githubusercontent.com/Dimonlomon/Private/main/server.py'
 CHECK_INTERVAL = 300
